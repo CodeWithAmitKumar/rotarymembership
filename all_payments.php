@@ -8,24 +8,32 @@ if (!isset($_SESSION['organisation_id'])) {
     exit();
 }
 
-$page_title = 'Members Management';
+$page_title = 'All Payments';
 $success = '';
 $error = '';
 $organisation_id = (int) $_SESSION['organisation_id'];
 
-// Check for success/error messages passed via URL
+// Check for any success or error messages
 if (isset($_GET['msg'])) {
-    if ($_GET['msg'] == 'deleted') $success = "Member deleted successfully.";
-    if ($_GET['msg'] == 'imported') $success = "Members imported successfully.";
+    if ($_GET['msg'] == 'deleted') $success = "Payment record deleted successfully.";
     if ($_GET['msg'] == 'error') $error = "An error occurred. Please try again.";
 }
 
-// Fetch members from database
-$stmt = $conn->prepare("SELECT * FROM members WHERE organisation_id = ? ORDER BY first_name ASC, last_name ASC");
+// Fetch all payments with member and session details
+$query = "SELECT p.id as payment_id, p.total_amount, p.payment_mode, p.payment_date, p.utr_receipt_no, 
+                 m.first_name, m.last_name, m.member_id as rotary_id, 
+                 s.session_label 
+          FROM payments p
+          JOIN members m ON p.member_id = m.id
+          JOIN sessions s ON p.session_id = s.id
+          WHERE p.organisation_id = ?
+          ORDER BY p.id DESC";
+
+$stmt = $conn->prepare($query);
 $stmt->bind_param("i", $organisation_id);
 $stmt->execute();
-$members_result = $stmt->get_result();
-$members = $members_result->fetch_all(MYSQLI_ASSOC);
+$payments_result = $stmt->get_result();
+$payments = $payments_result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 ?>
 <!DOCTYPE html>
@@ -33,7 +41,7 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Members - Rotary Membership</title>
+    <title>All Payments - Rotary Membership</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -54,9 +62,8 @@ $stmt->close();
             --text-light: #64748b;
             --white: #ffffff;
             --card-shadow: 0 18px 40px rgba(15, 76, 129, 0.08);
-            --danger-color: #ef4444;
-            --edit-color: #3b82f6;
             --success-color: #10b981;
+            --danger-color: #ef4444;
         }
         
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: radial-gradient(circle at top right, rgba(45, 143, 133, 0.12), transparent 24%), radial-gradient(circle at top left, rgba(27, 108, 168, 0.12), transparent 18%), var(--bg-color); min-height: 100vh; color: var(--text-dark); overflow-x: hidden; }
@@ -104,25 +111,21 @@ $stmt->close();
         .card-header { padding: 25px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
         .card-header-text h1 { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 5px; }
         .card-header-text p { font-size: 14px; color: var(--text-light); }
-        
-        /* Card Header Actions Container */
-        .card-header-actions { display: flex; gap: 12px; align-items: center; }
 
         /* Form Actions & Buttons */
-        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: all 0.3s ease; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 25px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: all 0.3s ease; }
         .btn-primary { background: var(--primary-color); color: var(--white); }
         .btn-primary:hover { background: #0f4c81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(27, 108, 168, 0.3); }
-        
-        .btn-success { background: var(--success-color); color: var(--white); }
-        .btn-success:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3); }
 
         /* Action Buttons in Table */
         .actions-cell { display: flex; gap: 8px; }
-        .btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; color: var(--white); text-decoration: none; transition: all 0.2s ease; font-size: 14px; }
-        .btn-edit { background: var(--edit-color); }
-        .btn-edit:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); }
-        .btn-delete { background: var(--danger-color); }
-        .btn-delete:hover { background: #dc2626; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
+        .btn-icon { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border-radius: 8px; color: var(--white); text-decoration: none; transition: all 0.2s ease; font-size: 13px; font-weight: 600; gap: 6px;}
+        .btn-view { background: #3b82f6; }
+        .btn-view:hover { background: #2563eb; transform: translateY(-2px); }
+        .btn-download { background: var(--secondary-color); }
+        .btn-download:hover { background: #23756d; transform: translateY(-2px); }
+        .btn-delete { background: var(--danger-color); padding: 0 10px; }
+        .btn-delete:hover { background: #dc2626; transform: translateY(-2px); }
 
         /* Table Styles */
         .table-responsive { overflow-x: auto; padding: 20px; }
@@ -133,15 +136,18 @@ $stmt->close();
         tbody tr:last-child td { border-bottom: none; }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
         
-        /* Status Badge */
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(45, 143, 133, 0.15); color: var(--secondary-color); display: inline-block; }
+        /* Status Badges */
+        .badge-mode { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; display: inline-block; }
+        .mode-online { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
+        .mode-offline { background: rgba(16, 185, 129, 0.15); color: #059669; }
+        .amount-col { font-weight: 700; color: var(--text-dark); }
 
         /* Alerts */
         .alert { padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
-        .alert-success { background: rgba(72, 187, 120, 0.15); color: #2f855a; border: 1px solid rgba(72, 187, 120, 0.3); }
+        .alert-success { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); }
         .alert-error { background: rgba(229, 62, 62, 0.15); color: #c53030; border: 1px solid rgba(229, 62, 62, 0.3); }
 
-        /* DataTables Custom Styling to match your theme */
+        /* DataTables Custom Styling */
         .dataTables_wrapper .dataTables_filter input {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -190,15 +196,14 @@ $stmt->close();
             .search-box { display: none; }
             .dashboard-content { padding: 90px 15px 20px; }
             .card-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .card-header-actions { width: 100%; flex-direction: column; }
-            .btn { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
 
 <?php 
-$active_page = 'members';
+// Ensure 'all_payments' is added to your sidebar.php to highlight correctly
+$active_page = 'all_payments';
 include 'sidebar.php'; 
 ?>
 
@@ -221,62 +226,58 @@ include 'sidebar.php';
         <div class="card">
             <div class="card-header">
                 <div class="card-header-text">
-                    <h1><i class="fas fa-users"></i> Member Directory</h1>
-                    <p>View and manage all members in your organization</p>
+                    <h1><i class="fas fa-wallet"></i> All Payment Records</h1>
+                    <p>View and manage all transactions and receipts for your organization.</p>
                 </div>
-                
-                <div class="card-header-actions">
-                    <a href="import_members.php" class="btn btn-success">
-                        <i class="fas fa-file-excel"></i> Import Members
-                    </a>
-                    <a href="add_member.php" class="btn btn-primary">
-                        <i class="fas fa-user-plus"></i> Add New Member
-                    </a>
-                </div>
+                <a href="create_payment.php" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Record New Payment
+                </a>
             </div>
             
             <div class="table-responsive">
-                <table id="membersTable">
+                <table id="paymentsTable">
                     <thead>
                         <tr>
-                            <th>Sl. No.</th>
-                            <th>Member ID</th>
-                            <th>Rotary Date</th>
-                            <th>Name</th>
-                            <th>Contact Info</th>
-                            <th>City/State/Country</th>
-                            <th style="width: 120px;" class="no-export">Actions</th> </tr>
+                            <th>Receipt No.</th>
+                            <th>Member Details</th>
+                            <th>Session</th>
+                            <th>Amount</th>
+                            <th>Date & Mode</th>
+                            <th style="width: 210px;" class="no-export">Actions</th> </tr>
                     </thead>
                     <tbody>
-                        <?php if (count($members) > 0): ?>
-                            <?php $count = 1; ?>
-                            <?php foreach ($members as $member): ?>
+                        <?php if (count($payments) > 0): ?>
+                            <?php foreach ($payments as $pay): ?>
                                 <tr>
-                                    <td><strong><?php echo $count++; ?></strong></td>
-                                    <td><strong><span class="badge"><?php echo htmlspecialchars($member['member_id']); ?></span></strong></td>
+                                    <td><strong>REC-<?php echo str_pad($pay['payment_id'], 5, '0', STR_PAD_LEFT); ?></strong></td>
                                     <td>
-                                        <?php echo $member['original_rotary_date'] ? date('M d, Y', strtotime($member['original_rotary_date'])) : 'N/A'; ?>
+                                        <div style="font-weight: 600; color: var(--primary-color);">
+                                            <?php echo htmlspecialchars($pay['first_name'] . ' ' . $pay['last_name']); ?>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-light); margin-top: 3px;">
+                                            ID: <?php echo htmlspecialchars($pay['rotary_id']); ?>
+                                        </div>
                                     </td>
+                                    <td><?php echo htmlspecialchars($pay['session_label']); ?></td>
+                                    <td class="amount-col">₹ <?php echo number_format($pay['total_amount'], 2); ?></td>
                                     <td>
-                                        <strong><?php echo htmlspecialchars($member['first_name'] . ' ' . $member['last_name']); ?></strong><br>
-                                        <?php if ($member['satellite_member'] === 'Y'): ?>
-                                            <span style="font-size: 12px; color: var(--secondary-color);"><i class="fas fa-satellite"></i> Satellite</span>
-                                        <?php endif; ?>
+                                        <div style="margin-bottom: 5px; font-size: 13px;">
+                                            <?php echo date('d M Y, h:i A', strtotime($pay['payment_date'])); ?>
+                                        </div>
+                                        <span class="badge-mode <?php echo ($pay['payment_mode'] == 'Online') ? 'mode-online' : 'mode-offline'; ?>">
+                                            <?php echo $pay['payment_mode']; ?>
+                                        </span>
                                     </td>
-                                    <td>
-                                        <div style="margin-bottom: 4px;"><i class="fas fa-envelope" style="color: var(--text-light); width: 16px;"></i> <?php echo htmlspecialchars($member['email'] ?? 'N/A'); ?></div>
-                                        <div><i class="fas fa-phone" style="color: var(--text-light); width: 16px;"></i> <?php echo htmlspecialchars($member['phone_no'] ?? 'N/A'); ?></div>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($member['city_state'] ?? 'N/A'); ?></td>
-                                    
-                                    
                                     <td>
                                         <div class="actions-cell">
-                                            <a href="edit_member.php?id=<?php echo $member['id']; ?>" class="btn-icon btn-edit" title="Edit Member">
-                                                <i class="fas fa-edit"></i>
+                                            <a href="receipt.php?id=<?php echo $pay['payment_id']; ?>" target="_blank" class="btn-icon btn-view" title="View Receipt">
+                                                <i class="fas fa-eye"></i> View
                                             </a>
-                                            <a href="delete_member.php?id=<?php echo $member['id']; ?>" class="btn-icon btn-delete" title="Delete Member" onclick="return confirm('Are you sure you want to delete this member?');">
-                                                <i class="fas fa-trash-alt"></i>
+                                            <a href="receipt.php?id=<?php echo $pay['payment_id']; ?>&action=download" target="_blank" class="btn-icon btn-download" title="Print/Download PDF">
+                                                <i class="fas fa-download"></i> PDF
+                                            </a>
+                                            <a href="delete_payment.php?id=<?php echo $pay['payment_id']; ?>" class="btn-icon btn-delete" title="Delete Payment" onclick="return confirm('Are you sure you want to permanently delete this payment record?');">
+                                                <i class="fas fa-trash-alt"></i> Del
                                             </a>
                                         </div>
                                     </td>
@@ -285,8 +286,8 @@ include 'sidebar.php';
                         <?php else: ?>
                             <tr>
                                 <td colspan="6" class="empty-state">
-                                    <i class="fas fa-users-slash" style="font-size: 32px; margin-bottom: 15px; color: #cbd5e0;"></i><br>
-                                    No members found. Click "Add New Member" or "Import Members" to get started.
+                                    <i class="fas fa-box-open" style="font-size: 32px; margin-bottom: 15px; color: #cbd5e0;"></i><br>
+                                    No payment records found. Click "Record New Payment" to get started.
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -308,7 +309,6 @@ include 'sidebar.php';
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 
     <script>
-        // Sidebar Toggle Logic
         function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('active'); }
         document.addEventListener('click', function(e) {
             const sidebar = document.querySelector('.sidebar');
@@ -322,12 +322,12 @@ include 'sidebar.php';
 
         // Initialize DataTable
         $(document).ready(function() {
-            $('#membersTable').DataTable({
-                dom: '<"top"Bf>rt<"bottom"lip><"clear">', // Puts buttons & search on top
+            $('#paymentsTable').DataTable({
+                dom: '<"top"Bf>rt<"bottom"lip><"clear">',
                 buttons: [
                     {
                         extend: 'copyHtml5',
-                        exportOptions: { columns: ':not(.no-export)' } // Excludes the 'Actions' column
+                        exportOptions: { columns: ':not(.no-export)' }
                     },
                     {
                         extend: 'excelHtml5',
@@ -349,8 +349,9 @@ include 'sidebar.php';
                 pageLength: 10,
                 language: {
                     search: "Filter:",
-                    searchPlaceholder: "Search members..."
-                }
+                    searchPlaceholder: "Search payments..."
+                },
+                order: [[0, 'desc']] // Sorts by the first column (Receipt No) descending by default
             });
         });
     </script>

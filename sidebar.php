@@ -1,3 +1,10 @@
+<?php
+$sql = "SELECT `image_path` FROM `organisations` WHERE 1";
+$result = mysqli_query( $conn, $sql );
+$row = mysqli_fetch_assoc($result);
+?>
+
+
 <!-- Sidebar -->
 <style>
 .sidebar {
@@ -65,10 +72,10 @@
 
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <div class="logo-icon">
-            <i class="fas fa-shield-alt"></i>
-        </div>
-        <span class="logo-text">Rotary Admin</span>
+      <div class="profile-avatar" style="overflow: hidden;">
+                    <img src="<?php echo $row['image_path']; ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                </div>
+        <span class="logo-text"><?php echo $_SESSION['organisation_name']; ?></span>
     </div>
     
     <ul class="sidebar-menu">
@@ -89,6 +96,8 @@
             <ul class="submenu">
                 <li><a href="sessions.php">Sessions</a></li>
                 <li><a href="payment_heads.php">Payment Head</a></li>
+                <li><a href="upload_Qr.php">Upload QR</a></li>
+
             </ul>
         </li>
 
@@ -99,12 +108,28 @@
             </a>
         </li>
 
-        <li>
-            <a href="#">
+        <li class="menu-item">
+            <a href="#" onclick="toggleMenu(event)" <?php echo $active_page === 'payments' ? 'class="active"' : ''; ?>>
+                <i class="fas fa-cog"></i>
+                <span>Payments</span>
+            </a>
+
+            <ul class="submenu">
+                <li><a href="create_payment.php">Make Payment</a></li>
+                <li><a href="all_payments.php">All Payments</a></li>
+
+            </ul>
+        </li>
+
+
+
+
+        <!-- <li>
+            <a href="create_payment.php">
                 <i class="fas fa-building"></i>
                 <span>Payments</span>
             </a>
-        </li>
+        </li> -->
     </ul>
 </aside>
 

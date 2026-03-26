@@ -879,8 +879,7 @@ include 'sidebar.php';
 
     <div class="dashboard-content">
         <div class="welcome-hero">
-            <h1 class="page-title">Welcome to Rotary Membership</h1>
-            <p class="welcome-subtitle">Manage your organization's members efficiently</p>
+            <h1 class="page-title">Welcome <?php echo $_SESSION['organisation_name']; ?></h1>
             
            
         </div>
