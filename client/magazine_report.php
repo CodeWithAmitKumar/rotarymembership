@@ -5,6 +5,8 @@ $page_title = 'Magazine Report';
 $organisation_id = (int) ($_SESSION['organisation_id'] ?? 0);
 $success = '';
 $error = '';
+$selected_year = isset($_GET['year']) ? (int) $_GET['year'] : 0;
+$selected_month = isset($_GET['month']) ? (int) $_GET['month'] : 0;
 
 $create_table_sql = "
     CREATE TABLE IF NOT EXISTS magazine_reports (
@@ -26,6 +28,15 @@ $conn->query($create_table_sql);
 
 if (isset($_GET['delete_id'])) {
     $delete_id = (int) $_GET['delete_id'];
+    $redirect_query = [];
+
+    if ($selected_year > 0) {
+        $redirect_query['year'] = $selected_year;
+    }
+
+    if ($selected_month >= 1 && $selected_month <= 12) {
+        $redirect_query['month'] = $selected_month;
+    }
 
     if ($delete_id > 0) {
         $delete_stmt = $conn->prepare("
@@ -39,12 +50,14 @@ if (isset($_GET['delete_id'])) {
         $delete_stmt->close();
 
         if ($deleted_rows > 0) {
-            header("Location: magazine_report.php?msg=deleted");
+            $redirect_query['msg'] = 'deleted';
+            header("Location: magazine_report.php?" . http_build_query($redirect_query));
             exit();
         }
     }
 
-    header("Location: magazine_report.php?msg=delete_failed");
+    $redirect_query['msg'] = 'delete_failed';
+    header("Location: magazine_report.php?" . http_build_query($redirect_query));
     exit();
 }
 
@@ -75,7 +88,28 @@ $months = [
     12 => 'December',
 ];
 
-$report_stmt = $conn->prepare("
+if ($selected_month < 1 || $selected_month > 12) {
+    $selected_month = 0;
+}
+
+$years_stmt = $conn->prepare("
+    SELECT DISTINCT magazine_year
+    FROM magazine_reports
+    WHERE organisation_id = ?
+    ORDER BY magazine_year DESC
+");
+$years_stmt->bind_param("i", $organisation_id);
+$years_stmt->execute();
+$years_result = $years_stmt->get_result();
+$available_years = [];
+
+while ($year_row = $years_result->fetch_assoc()) {
+    $available_years[] = (int) $year_row['magazine_year'];
+}
+
+$years_stmt->close();
+
+$query = "
     SELECT
         mr.id,
         mr.magazine_year,
@@ -90,9 +124,27 @@ $report_stmt = $conn->prepare("
     FROM magazine_reports mr
     INNER JOIN members m ON mr.member_id = m.id
     WHERE mr.organisation_id = ?
-    ORDER BY mr.magazine_year DESC, mr.magazine_month DESC, mr.sent_at DESC, mr.id DESC
-");
-$report_stmt->bind_param("i", $organisation_id);
+";
+
+$param_types = "i";
+$param_values = [$organisation_id];
+
+if ($selected_year > 0) {
+    $query .= " AND mr.magazine_year = ?";
+    $param_types .= "i";
+    $param_values[] = $selected_year;
+}
+
+if ($selected_month > 0) {
+    $query .= " AND mr.magazine_month = ?";
+    $param_types .= "i";
+    $param_values[] = $selected_month;
+}
+
+$query .= " ORDER BY mr.magazine_year DESC, mr.magazine_month DESC, mr.sent_at DESC, mr.id DESC";
+
+$report_stmt = $conn->prepare($query);
+$report_stmt->bind_param($param_types, ...$param_values);
 $report_stmt->execute();
 $report_result = $report_stmt->get_result();
 $reports = $report_result->fetch_all(MYSQLI_ASSOC);
@@ -116,6 +168,48 @@ $report_stmt->close();
         .card-header-text h1 { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 5px; }
         .card-header-text p { font-size: 14px; color: var(--text-light); }
         .card-header-badge { padding: 10px 16px; border-radius: 999px; background: rgba(45, 143, 133, 0.15); color: var(--secondary-color); font-size: 13px; font-weight: 700; }
+        .filter-bar {
+            padding: 20px 30px 0;
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+        .filter-group { display: grid; gap: 8px; min-width: 180px; }
+        .filter-group label { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+        .filter-control {
+            width: 100%;
+            border: 1px solid #d7e0ea;
+            border-radius: 10px;
+            padding: 10px 12px;
+            outline: none;
+            font-size: 14px;
+            background: var(--white);
+        }
+        .filter-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(27, 108, 168, 0.12);
+        }
+        .filter-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-filter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn-apply { background: var(--primary-color); color: var(--white); }
+        .btn-apply:hover { background: #0f4c81; }
+        .btn-reset { background: #e2e8f0; color: var(--text-dark); }
+        .btn-reset:hover { background: #cbd5e1; }
         .table-responsive { overflow-x: auto; padding: 20px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 15px 20px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: middle; }
@@ -181,6 +275,8 @@ $report_stmt->close();
 
         @media (max-width: 768px) {
             .card-header { flex-direction: column; align-items: flex-start; }
+            .filter-bar { padding: 20px 20px 0; }
+            .filter-group { width: 100%; min-width: 100%; }
         }
     </style>
 </head>
@@ -213,8 +309,43 @@ include 'sidebar.php';
                     <h1><i class="fas fa-book-open-reader"></i> Magazine Report</h1>
                     <p>All sent magazine records are listed here.</p>
                 </div>
-                <div class="card-header-badge">Total Sent: <?php echo count($reports); ?></div>
+                <div class="card-header-badge">Showing: <?php echo count($reports); ?></div>
             </div>
+
+            <form method="GET" class="filter-bar">
+                <div class="filter-group">
+                    <label for="year">Filter By Year</label>
+                    <select name="year" id="year" class="filter-control">
+                        <option value="">All Years</option>
+                        <?php foreach ($available_years as $year): ?>
+                            <option value="<?php echo $year; ?>" <?php echo $selected_year === $year ? 'selected' : ''; ?>>
+                                <?php echo $year; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="month">Filter By Month</label>
+                    <select name="month" id="month" class="filter-control">
+                        <option value="">All Months</option>
+                        <?php foreach ($months as $month_number => $month_name): ?>
+                            <option value="<?php echo $month_number; ?>" <?php echo $selected_month === $month_number ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($month_name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn-filter btn-apply">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <a href="magazine_report.php" class="btn-filter btn-reset">
+                        <i class="fas fa-rotate-left"></i> Reset
+                    </a>
+                </div>
+            </form>
 
             <div class="table-responsive">
                 <table id="magazineReportTable">
@@ -253,7 +384,11 @@ include 'sidebar.php';
                                     <td>
                                         <div class="actions-cell">
                                             <a
-                                                href="magazine_report.php?delete_id=<?php echo (int) $report['id']; ?>"
+                                                href="magazine_report.php?<?php echo htmlspecialchars(http_build_query(array_filter([
+                                                    'delete_id' => (int) $report['id'],
+                                                    'year' => $selected_year > 0 ? $selected_year : null,
+                                                    'month' => $selected_month > 0 ? $selected_month : null,
+                                                ]))); ?>"
                                                 class="btn-icon btn-delete"
                                                 title="Delete Record"
                                                 onclick="return confirm('Are you sure you want to delete this magazine report?');"
