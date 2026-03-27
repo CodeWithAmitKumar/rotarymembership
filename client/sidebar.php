@@ -63,12 +63,19 @@ if (!empty($_SESSION['organisation_id'])) {
             </ul>
         </li>
 
-        <li>
-            <a href="#">
-                <i class="fas fa-users"></i>
-                <span>Magazine-report</span>
+
+             <li class="menu-item">
+            <a href="#" onclick="toggleMenu(event)" <?php echo $active_page === 'magazine' ? 'class="active"' : ''; ?>>
+                <i class="fas fa-book"></i>
+                <span>Magazine</span>
             </a>
+
+            <ul class="submenu">
+                <li><a href="send_magazine.php">Send Magazine</a></li>
+                <li><a href="magazine_report.php">Magazine Report</a></li>
+            </ul>
         </li>
+        
     </ul>
 </aside>
 
