@@ -20,7 +20,7 @@ if (isset($_GET['msg'])) {
 }
 
 // Fetch all payments with member and session details
-$query = "SELECT p.id as payment_id, p.total_amount, p.payment_mode, p.payment_date, p.utr_receipt_no, 
+$query = "SELECT p.id as payment_id, p.total_amount, p.payment_year, p.payment_method, p.payment_date, p.receipt_no, p.utr_receipt_no, 
                  m.first_name, m.last_name, m.member_id as rotary_id, 
                  s.session_label 
           FROM payments p
@@ -41,7 +41,7 @@ $stmt->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Payments - Rotary Membership</title>
+    <title>All Payments</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -229,9 +229,7 @@ include 'sidebar.php';
                     <h1><i class="fas fa-wallet"></i> All Payment Records</h1>
                     <p>View and manage all transactions and receipts for your organization.</p>
                 </div>
-                <a href="create_payment.php" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Record New Payment
-                </a>
+                
             </div>
             
             <div class="table-responsive">
@@ -240,57 +238,51 @@ include 'sidebar.php';
                         <tr>
                             <th>Receipt No.</th>
                             <th>Member Details</th>
+                            <th>Year</th>
                             <th>Session</th>
                             <th>Amount</th>
                             <th>Date & Mode</th>
-                            <th style="width: 210px;" class="no-export">Actions</th> </tr>
+                            <th style="width: 210px;" class="no-export">Actions</th> 
+                        </tr>
                     </thead>
                     <tbody>
-                        <?php if (count($payments) > 0): ?>
-                            <?php foreach ($payments as $pay): ?>
-                                <tr>
-                                    <td><strong>REC-<?php echo str_pad($pay['payment_id'], 5, '0', STR_PAD_LEFT); ?></strong></td>
-                                    <td>
-                                        <div style="font-weight: 600; color: var(--primary-color);">
-                                            <?php echo htmlspecialchars($pay['first_name'] . ' ' . $pay['last_name']); ?>
-                                        </div>
-                                        <div style="font-size: 12px; color: var(--text-light); margin-top: 3px;">
-                                            ID: <?php echo htmlspecialchars($pay['rotary_id']); ?>
-                                        </div>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($pay['session_label']); ?></td>
-                                    <td class="amount-col">₹ <?php echo number_format($pay['total_amount'], 2); ?></td>
-                                    <td>
-                                        <div style="margin-bottom: 5px; font-size: 13px;">
-                                            <?php echo date('d M Y, h:i A', strtotime($pay['payment_date'])); ?>
-                                        </div>
-                                        <span class="badge-mode <?php echo ($pay['payment_mode'] == 'Online') ? 'mode-online' : 'mode-offline'; ?>">
-                                            <?php echo $pay['payment_mode']; ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="actions-cell">
-                                            <a href="receipt.php?id=<?php echo $pay['payment_id']; ?>" target="_blank" class="btn-icon btn-view" title="View Receipt">
-                                                <i class="fas fa-eye"></i> View
-                                            </a>
-                                            <a href="receipt.php?id=<?php echo $pay['payment_id']; ?>&action=download" target="_blank" class="btn-icon btn-download" title="Print/Download PDF">
-                                                <i class="fas fa-download"></i> PDF
-                                            </a>
-                                            <a href="delete_payment.php?id=<?php echo $pay['payment_id']; ?>" class="btn-icon btn-delete" title="Delete Payment" onclick="return confirm('Are you sure you want to permanently delete this payment record?');">
-                                                <i class="fas fa-trash-alt"></i> Del
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
+                        <?php foreach ($payments as $pay): ?>
                             <tr>
-                                <td colspan="6" class="empty-state">
-                                    <i class="fas fa-box-open" style="font-size: 32px; margin-bottom: 15px; color: #cbd5e0;"></i><br>
-                                    No payment records found. Click "Record New Payment" to get started.
+                                <td><strong><?php echo htmlspecialchars($pay['receipt_no']); ?></strong></td>
+                                <td>
+                                    <div style="font-weight: 600; color: var(--primary-color);">
+                                        <?php echo htmlspecialchars($pay['first_name'] . ' ' . $pay['last_name']); ?>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-light); margin-top: 3px;">
+                                        ID: <?php echo htmlspecialchars($pay['rotary_id']); ?>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($pay['payment_year']); ?></td>
+                                <td><?php echo htmlspecialchars($pay['session_label']); ?></td>
+                                <td class="amount-col">₹ <?php echo number_format($pay['total_amount'], 2); ?></td>
+                                <td>
+                                    <div style="margin-bottom: 5px; font-size: 13px;">
+                                        <?php echo date('d M Y', strtotime($pay['payment_date'])); ?>
+                                    </div>
+                                    <span class="badge-mode <?php echo (strtolower($pay['payment_method']) == 'online') ? 'mode-online' : 'mode-offline'; ?>">
+                                        <?php echo ucfirst(htmlspecialchars($pay['payment_method'])); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="actions-cell">
+                                        <a href="checkout.php?id=<?php echo $pay['payment_id']; ?>" target="_blank" class="btn-icon btn-view" title="View Receipt">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        <a href="checkout.php?id=<?php echo $pay['payment_id']; ?>&action=download" target="_blank" class="btn-icon btn-download" title="Print/Download PDF">
+                                            <i class="fas fa-download"></i> PDF
+                                        </a>
+                                        <a href="delete_payment.php?id=<?php echo $pay['payment_id']; ?>" class="btn-icon btn-delete" title="Delete Payment" onclick="return confirm('Are you sure you want to permanently delete this payment record?');">
+                                            <i class="fas fa-trash-alt"></i> Del
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
-                        <?php endif; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -349,7 +341,8 @@ include 'sidebar.php';
                 pageLength: 10,
                 language: {
                     search: "Filter:",
-                    searchPlaceholder: "Search payments..."
+                    searchPlaceholder: "Search payments...",
+                    emptyTable: '<div class="empty-state"><i class="fas fa-box-open" style="font-size: 32px; margin-bottom: 15px; color: #cbd5e0;"></i><br>No payment records found. Go to the Members tab and click "Make Payment" to get started.</div>'
                 },
                 order: [[0, 'desc']] // Sorts by the first column (Receipt No) descending by default
             });

@@ -7,7 +7,7 @@ $success = '';
 
 // Check if already logged in as organisation
 if (isset($_SESSION['organisation_id'])) {
-    header("Location: welcome.php");
+    header("Location: client/welcome.php");
     exit();
 }
 
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['organisation_id'] = $organisation['organisation_id'];
             $_SESSION['organisation_name'] = $organisation['organisation_name'];
             $_SESSION['organisation_email'] = $organisation['email'];
-            header("Location: welcome.php");
+            header("Location: client/welcome.php");
             exit();
         } else {
             $error = "Invalid password";
@@ -234,4 +234,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </body>
 </html>
-

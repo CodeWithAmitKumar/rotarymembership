@@ -141,7 +141,7 @@ $stmt->close();
         .alert-success { background: rgba(72, 187, 120, 0.15); color: #2f855a; border: 1px solid rgba(72, 187, 120, 0.3); }
         .alert-error { background: rgba(229, 62, 62, 0.15); color: #c53030; border: 1px solid rgba(229, 62, 62, 0.3); }
 
-        /* DataTables Custom Styling to match your theme */
+        /* DataTables Custom Styling */
         .dataTables_wrapper .dataTables_filter input {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -179,6 +179,14 @@ $stmt->close();
             padding: 4px 8px;
             outline: none;
         }
+
+        /* Toggle Switch Styles */
+        .switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e0; transition: .3s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        input:checked + .slider { background-color: var(--success-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -245,7 +253,9 @@ include 'sidebar.php';
                             <th>Name</th>
                             <th>Contact Info</th>
                             <th>City/State/Country</th>
-                            <th style="width: 120px;" class="no-export">Actions</th> </tr>
+                            <th>Status</th>
+                            <th style="width: 120px;" class="no-export">Actions</th> 
+                        </tr>
                     </thead>
                     <tbody>
                         <?php if (count($members) > 0): ?>
@@ -269,6 +279,12 @@ include 'sidebar.php';
                                     </td>
                                     <td><?php echo htmlspecialchars($member['city_state'] ?? 'N/A'); ?></td>
                                     
+                                    <td>
+                                        <label class="switch">
+                                            <input type="checkbox" class="status-toggle" data-id="<?php echo $member['id']; ?>" <?php echo (!isset($member['is_active']) || $member['is_active'] == 1) ? 'checked' : ''; ?>>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </td>
                                     
                                     <td>
                                         <div class="actions-cell">
@@ -284,7 +300,7 @@ include 'sidebar.php';
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="6" class="empty-state">
+                                <td colspan="8" class="empty-state">
                                     <i class="fas fa-users-slash" style="font-size: 32px; margin-bottom: 15px; color: #cbd5e0;"></i><br>
                                     No members found. Click "Add New Member" or "Import Members" to get started.
                                 </td>
@@ -322,12 +338,13 @@ include 'sidebar.php';
 
         // Initialize DataTable
         $(document).ready(function() {
+            <?php if (count($members) > 0): ?>
             $('#membersTable').DataTable({
-                dom: '<"top"Bf>rt<"bottom"lip><"clear">', // Puts buttons & search on top
+                dom: '<"top"Bf>rt<"bottom"lip><"clear">',
                 buttons: [
                     {
                         extend: 'copyHtml5',
-                        exportOptions: { columns: ':not(.no-export)' } // Excludes the 'Actions' column
+                        exportOptions: { columns: ':not(.no-export)' }
                     },
                     {
                         extend: 'excelHtml5',
@@ -351,6 +368,39 @@ include 'sidebar.php';
                     search: "Filter:",
                     searchPlaceholder: "Search members..."
                 }
+            });
+            <?php endif; ?>
+
+            // Handle Status Toggle Change
+            $(document).on('change', '.status-toggle', function() {
+                var toggle = $(this);
+                var memberId = toggle.data('id');
+                var isActive = toggle.is(':checked') ? 1 : 0;
+
+                $.ajax({
+                    url: 'update_member_status.php',
+                    type: 'POST',
+                    data: { 
+                        id: memberId, 
+                        status: isActive 
+                    },
+                    success: function(response) {
+                        try {
+                            var res = JSON.parse(response);
+                            if(res.status !== 'success') {
+                                alert("Failed to update status: " + res.message);
+                                toggle.prop('checked', !isActive); 
+                            }
+                        } catch (e) {
+                            alert("Invalid server response format.");
+                            toggle.prop('checked', !isActive);
+                        }
+                    },
+                    error: function() {
+                        alert("An error occurred while communicating with the server.");
+                        toggle.prop('checked', !isActive);
+                    }
+                });
             });
         });
     </script>

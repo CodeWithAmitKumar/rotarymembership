@@ -1,7 +1,14 @@
 <?php
-$sql = "SELECT `image_path` FROM `organisations` WHERE 1";
-$result = mysqli_query( $conn, $sql );
-$row = mysqli_fetch_assoc($result);
+$row = ['image_path' => ''];
+
+if (!empty($_SESSION['organisation_id'])) {
+    $stmt = $conn->prepare("SELECT image_path FROM organisations WHERE organisation_id = ?");
+    $stmt->bind_param("i", $_SESSION['organisation_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc() ?: $row;
+    $stmt->close();
+}
 ?>
 
 
@@ -73,7 +80,11 @@ $row = mysqli_fetch_assoc($result);
 <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="profile-avatar" style="overflow: hidden;">
-                    <img src="<?php echo $row['image_path']; ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                    <?php if (!empty($row['image_path'])): ?>
+                        <img src="<?php echo htmlspecialchars(app_url($row['image_path'])); ?>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.remove();">
+                    <?php else: ?>
+                        <i class="fas fa-building"></i>
+                    <?php endif; ?>
                 </div>
         <span class="logo-text"><?php echo $_SESSION['organisation_name']; ?></span>
     </div>
@@ -115,7 +126,7 @@ $row = mysqli_fetch_assoc($result);
             </a>
 
             <ul class="submenu">
-                <li><a href="create_payment.php">Make Payment</a></li>
+                <li><a href="payments.php">Make Payment</a></li>
                 <li><a href="all_payments.php">All Payments</a></li>
 
             </ul>

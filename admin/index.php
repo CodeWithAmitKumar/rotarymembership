@@ -8,7 +8,7 @@ $page_title = 'Admin Dashboard';
 $total_organisations = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as count FROM organisations"))['count'];
 
 // Get recent organisations
-$recent_organisations = mysqli_query($conn, "SELECT * FROM organisations ORDER BY id DESC LIMIT 5");
+$recent_organisations = mysqli_query($conn, "SELECT * FROM organisations ORDER BY organisation_id DESC LIMIT 5");
 ?>
 
 <?php include 'header.php'; ?>

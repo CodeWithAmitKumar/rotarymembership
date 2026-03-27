@@ -52,8 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Generate unique filename
             $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
             $new_filename = 'org_' . $organisation['organisation_id'] . '_' . time() . '.' . $file_extension;
-            $upload_dir = 'uploads/';
-            $target_path = $upload_dir . $new_filename;
+            $upload_dir = app_path('uploads');
+            $target_path = $upload_dir . DIRECTORY_SEPARATOR . $new_filename;
+            $db_image_path = 'uploads/' . $new_filename;
             
             // Create uploads directory if it doesn't exist
             if (!is_dir($upload_dir)) {
@@ -63,11 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Move uploaded file
             if (move_uploaded_file($file_tmp, $target_path)) {
                 // Remove old image if it exists
-                if ($organisation['image_path'] && file_exists($organisation['image_path'])) {
-                    unlink($organisation['image_path']);
+                if ($organisation['image_path'] && file_exists(app_path($organisation['image_path']))) {
+                    unlink(app_path($organisation['image_path']));
                 }
                 
-                $image_path = $target_path;
+                $image_path = $db_image_path;
             } else {
                 $error = "Failed to upload image.";
             }
@@ -649,8 +650,8 @@ include 'sidebar.php';
                 
                 <form method="POST" enctype="multipart/form-data">
                     <div class="image-preview">
-                        <?php if (!empty($organisation['image_path']) && file_exists($organisation['image_path'])): ?>
-                            <img src="<?php echo $organisation['image_path']; ?>" alt="Current Image" class="current-image">
+                        <?php if (!empty($organisation['image_path']) && file_exists(app_path($organisation['image_path']))): ?>
+                            <img src="<?php echo htmlspecialchars(app_url($organisation['image_path'])); ?>" alt="Current Image" class="current-image">
                         <?php else: ?>
                             <div class="current-image" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #666;">
                                 <i class="fas fa-image" style="font-size: 40px;"></i>

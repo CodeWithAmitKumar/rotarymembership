@@ -59,9 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // 1. Check for duplicate email (excluding THIS member's ID)
         if (!empty($email)) {
-            $check_email = $conn->prepare("SELECT id FROM members WHERE email = ? AND id != ?");
+            $check_email = $conn->prepare("SELECT id FROM members WHERE email = ? AND id != ? AND organisation_id = ?");
             if ($check_email) {
-                $check_email->bind_param("si", $email, $id);
+                $check_email->bind_param("sii", $email, $id, $organisation_id);
                 $check_email->execute();
                 if ($check_email->get_result()->num_rows > 0) {
                     $email_exists = true;
@@ -146,12 +146,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             --text-light: #64748b;
             --white: #ffffff;
             --card-shadow: 0 18px 40px rgba(15, 76, 129, 0.08);
-            --edit-color: #3b82f6;
         }
         
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: radial-gradient(circle at top right, rgba(45, 143, 133, 0.12), transparent 24%), radial-gradient(circle at top left, rgba(27, 108, 168, 0.12), transparent 18%), var(--bg-color); min-height: 100vh; color: var(--text-dark); overflow-x: hidden; }
         
-        /* Sidebar & Header Styles */
         .sidebar { position: fixed; left: 0; top: 0; width: var(--sidebar-width); height: 100vh; background: var(--primary-gradient); padding: 20px; z-index: 250; overflow-y: auto; box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease; }
         .sidebar-logo { display: flex; align-items: center; gap: 12px; padding: 10px 0 30px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); margin-bottom: 25px; }
         .sidebar-logo .logo-icon { width: 45px; height: 45px; background: rgba(255, 255, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--white); }
@@ -183,53 +181,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .dropdown-item:hover { background: #f7fafc; color: var(--primary-color); }
         .dropdown-item i { width: 18px; color: var(--text-light); }
         
-        /* Dashboard Content */
         .dashboard-content { padding: 102px 30px 32px; max-width: 900px; margin: 0 auto; }
         
-        /* Card Styles */
         .card { background: var(--white); border-radius: 16px; box-shadow: var(--card-shadow); overflow: hidden; }
         .card-header { padding: 25px 30px; border-bottom: 1px solid #e2e8f0; }
         .card-header h1 { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 5px; }
         .card-header p { font-size: 14px; color: var(--text-light); }
         
-        /* Form Styles */
         form { padding: 30px; }
-        
-        /* 2-Column Form Layout */
         .form-row { display: flex; gap: 20px; }
         .form-row .form-group { flex: 1; }
-        
         .form-group { margin-bottom: 22px; }
         .form-group label { display: block; margin-bottom: 8px; color: var(--text-dark); font-weight: 600; font-size: 14px; }
         .form-group label i { margin-right: 6px; color: var(--primary-color); }
-        
-        .form-group input[type="text"], 
+        .form-group input[type="text"],
         .form-group input[type="email"],
         .form-group input[type="date"],
         .form-group input[type="tel"],
         .form-group select,
-        .form-group textarea { 
-            width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; transition: all 0.3s ease; background: #f7fafc; color: var(--text-dark); 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+            color: var(--text-dark);
         }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
-            border-color: var(--primary-color); background: var(--white); box-shadow: 0 0 0 3px rgba(27, 108, 168, 0.1); 
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--primary-color);
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(27, 108, 168, 0.1);
         }
         .form-group textarea { resize: vertical; min-height: 80px; }
         
-        /* Form Actions & Buttons */
         .form-actions { display: flex; gap: 15px; margin-top: 10px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
         .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 25px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; border: none; transition: all 0.3s ease; }
-        .btn-primary { background: var(--edit-color); color: var(--white); }
-        .btn-primary:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3); }
+        .btn-primary { background: var(--primary-color); color: var(--white); }
+        .btn-primary:hover { background: #0f4c81; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(27, 108, 168, 0.3); }
         .btn-secondary { background: #e2e8f0; color: var(--text-dark); }
         .btn-secondary:hover { background: #cbd5e0; transform: translateY(-2px); }
         
-        /* Alerts */
         .alert { padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
         .alert-success { background: rgba(72, 187, 120, 0.15); color: #2f855a; border: 1px solid rgba(72, 187, 120, 0.3); }
         .alert-error { background: rgba(229, 62, 62, 0.15); color: #c53030; border: 1px solid rgba(229, 62, 62, 0.3); }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.active { transform: translateX(0); }
@@ -293,11 +292,11 @@ include 'sidebar.php';
                 <div class="form-row">
                     <div class="form-group">
                         <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
-                        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($member_data['email']); ?>">
+                        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($member_data['email'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
                         <label for="phone_no"><i class="fas fa-phone"></i> Phone Number</label>
-                        <input type="tel" name="phone_no" id="phone_no" value="<?php echo htmlspecialchars($member_data['phone_no']); ?>">
+                        <input type="tel" name="phone_no" id="phone_no" value="<?php echo htmlspecialchars($member_data['phone_no'] ?? ''); ?>">
                     </div>
                 </div>
 
@@ -314,17 +313,17 @@ include 'sidebar.php';
 
                 <div class="form-group">
                     <label for="address"><i class="fas fa-map-marker-alt"></i> Address</label>
-                    <textarea name="address" id="address"><?php echo htmlspecialchars($member_data['address']); ?></textarea>
+                    <textarea name="address" id="address"><?php echo htmlspecialchars($member_data['address'] ?? ''); ?></textarea>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="city_state"><i class="fas fa-city"></i> City / State</label>
-                        <input type="text" name="city_state" id="city_state" value="<?php echo htmlspecialchars($member_data['city_state']); ?>">
+                        <input type="text" name="city_state" id="city_state" value="<?php echo htmlspecialchars($member_data['city_state'] ?? ''); ?>">
                     </div>
                     <div class="form-group">
                         <label for="postal_code"><i class="fas fa-mail-bulk"></i> Postal Code</label>
-                        <input type="text" name="postal_code" id="postal_code" value="<?php echo htmlspecialchars($member_data['postal_code']); ?>">
+                        <input type="text" name="postal_code" id="postal_code" value="<?php echo htmlspecialchars($member_data['postal_code'] ?? ''); ?>">
                     </div>
                 </div>
 
@@ -334,22 +333,22 @@ include 'sidebar.php';
                     <div class="form-group">
                         <label for="online_account_with_rotary"><i class="fas fa-globe"></i> Online Account with Rotary?</label>
                         <select name="online_account_with_rotary" id="online_account_with_rotary">
-                            <option value="N" <?php echo ($member_data['online_account_with_rotary'] == 'N') ? 'selected' : ''; ?>>No (N)</option>
-                            <option value="Y" <?php echo ($member_data['online_account_with_rotary'] == 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
+                            <option value="N" <?php echo (($member_data['online_account_with_rotary'] ?? 'N') === 'N') ? 'selected' : ''; ?>>No (N)</option>
+                            <option value="Y" <?php echo (($member_data['online_account_with_rotary'] ?? 'N') === 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="age_data_available"><i class="fas fa-birthday-cake"></i> Age Data Available?</label>
                         <select name="age_data_available" id="age_data_available">
-                            <option value="N" <?php echo ($member_data['age_data_available'] == 'N') ? 'selected' : ''; ?>>No (N)</option>
-                            <option value="Y" <?php echo ($member_data['age_data_available'] == 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
+                            <option value="N" <?php echo (($member_data['age_data_available'] ?? 'N') === 'N') ? 'selected' : ''; ?>>No (N)</option>
+                            <option value="Y" <?php echo (($member_data['age_data_available'] ?? 'N') === 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="satellite_member"><i class="fas fa-satellite"></i> Satellite Member?</label>
                         <select name="satellite_member" id="satellite_member">
-                            <option value="N" <?php echo ($member_data['satellite_member'] == 'N') ? 'selected' : ''; ?>>No (N)</option>
-                            <option value="Y" <?php echo ($member_data['satellite_member'] == 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
+                            <option value="N" <?php echo (($member_data['satellite_member'] ?? 'N') === 'N') ? 'selected' : ''; ?>>No (N)</option>
+                            <option value="Y" <?php echo (($member_data['satellite_member'] ?? 'N') === 'Y') ? 'selected' : ''; ?>>Yes (Y)</option>
                         </select>
                     </div>
                 </div>
