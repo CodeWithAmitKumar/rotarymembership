@@ -1,18 +1,28 @@
 <?php
-require_once('config.php');
+require_once 'config.php';
+require_once 'functions.php';
 
-$row = ['image_path' => ''];
-
-if (!empty($_SESSION['organisation_id'])) {
-    $stmt = $conn->prepare("SELECT image_path FROM organisations WHERE organisation_id = ?");
-    $stmt->bind_param("i", $_SESSION['organisation_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc() ?: $row;
-    $stmt->close();
+if (!isset($_SESSION['organisation_id'])) {
+    header("Location: index.php");
+    exit();
 }
-?>
 
+if (!function_exists('render_client_header')) {
+    function render_client_header(): void
+    {
+        global $conn;
+
+        $row = ['image_path' => ''];
+
+        if (!empty($_SESSION['organisation_id'])) {
+            $stmt = $conn->prepare("SELECT image_path FROM organisations WHERE organisation_id = ?");
+            $stmt->bind_param("i", $_SESSION['organisation_id']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc() ?: $row;
+            $stmt->close();
+        }
+        ?>
 <header class="header">
     <div class="header-left">
         <button class="menu-toggle" onclick="toggleSidebar()">
@@ -23,9 +33,8 @@ if (!empty($_SESSION['organisation_id'])) {
             <input type="text" placeholder="Search members, events...">
         </div>
     </div>
-    
+
     <div class="header-right">
-        
         <div class="profile-section">
             <button class="profile-btn">
                 <div class="profile-avatar" style="overflow: hidden;">
@@ -35,9 +44,8 @@ if (!empty($_SESSION['organisation_id'])) {
                         <i class="fas fa-building"></i>
                     <?php endif; ?>
                 </div>
-              
             </button>
-            
+
             <div class="profile-dropdown">
                 <a href="updateprofile.php" class="dropdown-item">
                     <i class="fas fa-user-circle"></i>
@@ -55,3 +63,6 @@ if (!empty($_SESSION['organisation_id'])) {
         </div>
     </div>
 </header>
+        <?php
+    }
+}

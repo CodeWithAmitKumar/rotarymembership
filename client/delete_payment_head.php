@@ -1,12 +1,5 @@
 <?php
-require_once 'config.php';
-require_once 'functions.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['organisation_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once 'header.php';
 
 if (isset($_GET['id'])) {
     $id = (int) $_GET['id'];

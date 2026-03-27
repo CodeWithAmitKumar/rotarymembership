@@ -121,7 +121,7 @@ if (!empty($_SESSION['organisation_id'])) {
 
         <li class="menu-item">
             <a href="#" onclick="toggleMenu(event)" <?php echo $active_page === 'payments' ? 'class="active"' : ''; ?>>
-                <i class="fas fa-cog"></i>
+                <i class="fa fa-rupee-sign"></i>
                 <span>Payments</span>
             </a>
 
@@ -130,6 +130,12 @@ if (!empty($_SESSION['organisation_id'])) {
                 <li><a href="all_payments.php">All Payments</a></li>
 
             </ul>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-users"></i>
+                <span>Magazine-report</span>
+            </a>
         </li>
 
 

@@ -1,11 +1,5 @@
 <?php
-require_once 'config.php';
-require_once 'functions.php';
-
-if (!isset($_SESSION['organisation_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once 'header.php';
 
 $success = '';
 $error = '';
@@ -517,7 +511,7 @@ include 'sidebar.php';
 ?>
 
 <div class="main-content">
-<?php include 'header.php'; ?>
+<?php render_client_header(); ?>
 
     <div class="dashboard-content">
             <?php if ($success): ?>

@@ -1,11 +1,5 @@
 <?php
-require_once 'config.php';
-require_once 'functions.php';
-
-if (!isset($_SESSION['organisation_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once 'header.php';
 
 $page_title = 'Create Payment';
 $organisation_id = (int) $_SESSION['organisation_id'];
@@ -254,7 +248,7 @@ include 'sidebar.php';
 ?>
 
 <div class="main-content">
-    <?php include 'header.php'; ?>
+    <?php render_client_header(); ?>
 
     <div class="dashboard-content">
         <div class="card">

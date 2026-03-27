@@ -1,11 +1,5 @@
 <?php
-require_once 'config.php';
-require_once 'functions.php';
-
-if (!isset($_SESSION['organisation_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once 'header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -875,7 +869,7 @@ include 'sidebar.php';
 
 <!-- Main Content Wrapper -->
 <div class="main-content">
-<?php include 'header.php'; ?>
+<?php render_client_header(); ?>
 
     <div class="dashboard-content">
         <div class="welcome-hero">

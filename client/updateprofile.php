@@ -1,12 +1,5 @@
 <?php
-require_once 'config.php';
-require_once 'functions.php';
-
-// Check if user is logged in (use correct session variable)
-if (!isset($_SESSION['organisation_id'])) {
-    header("Location: index.php");
-    exit();
-}
+require_once 'header.php';
 
 $page_title = 'Update Profile';
 $success = '';
@@ -627,7 +620,7 @@ include 'sidebar.php';
 
 <!-- Main Content Wrapper -->
 <div class="main-content">
-<?php include 'header.php'; ?>
+<?php render_client_header(); ?>
 
     <div class="dashboard-content">
             <?php if ($success): ?>
