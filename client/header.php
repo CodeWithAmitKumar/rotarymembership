@@ -79,6 +79,10 @@ if (!function_exists('render_client_shared_styles')) {
         --primary-gradient: linear-gradient(180deg, #0f4c81 0%, #1b6ca8 100%);
         --primary-color: #1b6ca8;
         --secondary-color: #2d8f85;
+        --success-color: #10b981;
+        --danger-color: #ef4444;
+        --edit-color: #3b82f6;
+        --border-color: #e2e8f0;
         --sidebar-width: 260px;
         --header-height: 70px;
         --bg-color: #eef3f8;
