@@ -1,39 +1,21 @@
 <?php
 require_once 'config.php';
-require_once 'functions.php';
 
+$token = trim($_GET['token'] ?? '');
 $error = '';
-$success = '';
 
-// Check if already logged in as organisation
-if (isset($_SESSION['organisation_id'])) {
-    header("Location: client/welcome.php");
-    exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = clean_input($_POST['email']);
-    $password = $_POST['password'];
-    
-    $stmt = $conn->prepare("SELECT organisation_id , organisation_name, email, password FROM organisations WHERE email = ?");
-    $stmt->bind_param("s", $email);
+if ($token === '') {
+    $error = "Invalid request!";
+} else {
+    $stmt = $conn->prepare("SELECT organisation_id FROM organisations WHERE reset_token=? AND token_expire > NOW()");
+    $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
-    
-    if ($result->num_rows == 1) {
-        $organisation = $result->fetch_assoc();
-        if (password_verify($password, $organisation['password'])) {
-            $_SESSION['organisation_id'] = $organisation['organisation_id'];
-            $_SESSION['organisation_name'] = $organisation['organisation_name'];
-            $_SESSION['organisation_email'] = $organisation['email'];
-            header("Location: client/welcome.php");
-            exit();
-        } else {
-            $error = "Invalid password";
-        }
-    } else {
-        $error = "Invalid email address";
+
+    if ($result->num_rows === 0) {
+        $error = "Token expired or invalid!";
     }
+
     $stmt->close();
 }
 ?>
@@ -42,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organisation Login</title>
+    <title>Reset Password</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -50,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -60,17 +42,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             justify-content: center;
             padding: 20px;
         }
-        
+
         .login-container {
             background: white;
             padding: 50px;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 450px;
             width: 100%;
             animation: slideUp 0.5s ease;
         }
-        
+
         @keyframes slideUp {
             from {
                 opacity: 0;
@@ -81,33 +63,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 transform: translateY(0);
             }
         }
-        
+
         .login-header {
             text-align: center;
             margin-bottom: 40px;
         }
-        
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .brand-logo i {
+            font-size: 32px;
+            color: #667eea;
+        }
+
         .login-icon {
             font-size: 60px;
             color: #667eea;
             margin-bottom: 20px;
         }
-        
+
         h1 {
             color: #333;
             font-size: 28px;
             margin-bottom: 10px;
+            text-align: center;
         }
-        
+
         .subtitle {
             color: #666;
             font-size: 14px;
+            text-align: center;
+            line-height: 1.6;
         }
-        
+
         .form-group {
             margin-bottom: 25px;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -115,8 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-weight: 600;
             font-size: 14px;
         }
-        
-        input[type="email"],
+
         input[type="password"] {
             width: 100%;
             padding: 15px;
@@ -125,13 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             font-size: 16px;
             transition: all 0.3s ease;
         }
-        
+
         input:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         .btn-login {
             width: 100%;
             padding: 15px;
@@ -146,14 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         .btn-login:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
-        
-        .error {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+
+        .message {
             color: white;
             padding: 15px;
             border-radius: 10px;
@@ -161,36 +157,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: flex;
             align-items: center;
             gap: 10px;
+            line-height: 1.5;
         }
-        
+
+        .message.error {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
         .admin-link {
             text-align: center;
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid #e0e0e0;
         }
-        
+
         .admin-link a {
             color: #667eea;
             text-decoration: none;
             font-weight: 600;
         }
-        
+
         .admin-link a:hover {
             text-decoration: underline;
-        }
-        
-        .brand-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .brand-logo i {
-            font-size: 32px;
-            color: #667eea;
         }
     </style>
 </head>
@@ -201,38 +189,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <i class="fas fa-hand-holding-heart"></i>
             </div>
             <div class="login-icon">
-                <i class="fas fa-building"></i>
+                <i class="fas fa-unlock-alt"></i>
             </div>
-            <h1>Organisation Login</h1>
+            <h1>Reset Password</h1>
+            <p class="subtitle">Create a new password for your organisation account.</p>
         </div>
-        
+
         <?php if ($error): ?>
-            <div class="error">
+            <div class="message error">
                 <i class="fas fa-exclamation-circle"></i>
-                <?php echo $error; ?>
+                <span><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
+        <?php else: ?>
+            <form method="POST" action="update_password.php">
+                <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
+
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> New Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your new password" required autofocus>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-save"></i> Update Password
+                </button>
+            </form>
         <?php endif; ?>
-        
-        <form method="POST">
-            <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Email Address</label>
-                <input type="email" name="email" required autofocus placeholder="Enter your email">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-lock"></i> Password</label>
-                <input type="password" name="password" required placeholder="Enter your password">
-            </div>
-            
-            <button type="submit" class="btn-login">
-                <i class="fas fa-sign-in-alt"></i> Login
-            </button>
-        </form>
+
         <div class="admin-link">
-            <a href="forgot_password.php">Forgot Password ?</a>
+            <a href="index.php">Back to Login</a>
         </div>
-        
-       
     </div>
 </body>
 </html>
